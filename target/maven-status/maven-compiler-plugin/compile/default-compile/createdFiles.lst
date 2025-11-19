@@ -3,8 +3,11 @@ cse\oop2\hotelflow\Server\service\RoomServiceOrderService.class
 cse\oop2\hotelflow\Server\file\FileRoomRepository.class
 cse\oop2\hotelflow\Common\model\Reservation.class
 cse\oop2\hotelflow\Common\model\RoomServiceOrderStatus.class
+cse\oop2\hotelflow\Client\ui\GuestReservationFrame.class
 cse\oop2\hotelflow\Common\model\RoomServiceOrder.class
 cse\oop2\hotelflow\Client\ui\ReservationPanel.class
+cse\oop2\hotelflow\Client\ui\LoginMode.class
+cse\oop2\hotelflow\Client\ui\StartFrame.class
 cse\oop2\hotelflow\Client\ui\RoomServicePanel.class
 cse\oop2\hotelflow\Client\ui\MainFrame.class
 cse\oop2\hotelflow\Client\ui\RoomPanel$1.class

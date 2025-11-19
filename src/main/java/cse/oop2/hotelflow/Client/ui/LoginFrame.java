@@ -6,14 +6,25 @@ import cse.oop2.hotelflow.Common.model.UserRole;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Optional;
 
 public class LoginFrame extends JFrame {
+
+    private final LoginMode mode;   //  어떤 로그인 모드인지 저장
 
     private JTextField idField;
     private JPasswordField passwordField;
     private JLabel statusLabel;
 
+    // 
     public LoginFrame() {
+        this(LoginMode.STAFF_ADMIN);
+    }
+
+    // 새로운 생성자: 모드를 받아서 생성
+    public LoginFrame(LoginMode mode) {
+        this.mode = mode;
+
         setTitle("HotelFlow 로그인");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 250);
@@ -89,19 +100,20 @@ public class LoginFrame extends JFrame {
             // 로그인 요청
             String response = conn.sendAndReceive("LOGIN|" + id + "|" + pw);
 
-            if (response.startsWith("OK|")) {
+            if (response != null && response.startsWith("OK|")) {
                 String roleStr = response.split("\\|")[1];
                 statusLabel.setText("로그인 성공 (" + roleStr + ")");
 
                 UserRole role = UserRole.valueOf(roleStr);
 
-                MainFrame mainFrame = new MainFrame(role);
-                mainFrame.setVisible(true);
-                mainFrame.loadInitialData();
+                // 모드별 분기
+                if (mode == LoginMode.STAFF_ADMIN) {
+                    handleStaffAdminLogin(role);
+                } else if (mode == LoginMode.CUSTOMER) {
+                    handleCustomerLogin(role);
+                }
 
-                dispose(); // 로그인 창 닫기
-
-            } else if (response.startsWith("FAIL|")) {
+            } else if (response != null && response.startsWith("FAIL|")) {
                 String msg = response.substring("FAIL|".length());
                 statusLabel.setText("로그인 실패");
                 JOptionPane.showMessageDialog(this, msg);
@@ -112,6 +124,39 @@ public class LoginFrame extends JFrame {
             statusLabel.setText("서버에 연결할 수 없습니다.");
             JOptionPane.showMessageDialog(this,
                     "서버가 실행 중인지 확인하세요.\n(서버 선실행 규칙 위반)");
+        }
+    }
+
+    // 직원/관리자 모드 처리
+    private void handleStaffAdminLogin(UserRole role) {
+        if (role == UserRole.ADMIN || role == UserRole.STAFF) {
+            MainFrame mainFrame = new MainFrame(role);
+            mainFrame.setVisible(true);
+            mainFrame.loadInitialData();
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "직원/관리자 전용 로그인입니다.\n(현재 역할: " + role + ")");
+        }
+    }
+
+    // 고객 모드 처리
+    private void handleCustomerLogin(UserRole role) {
+        if (role == UserRole.CUSTOMER) {
+            // 아직 CustomerMainFrame이 없다면, 일단 MainFrame을 재사용해도 됨
+            // 나중에 고객 전용 화면을 따로 만들면 여기서 바꿔주면 됨.
+            // 예시:
+            // CustomerMainFrame customerMain = new CustomerMainFrame(role, ...);
+            // customerMain.setVisible(true);
+
+            MainFrame mainFrame = new MainFrame(role);  // 임시로 재사용
+            mainFrame.setVisible(true);
+            mainFrame.loadInitialData();
+            dispose();
+
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "고객 전용 로그인입니다.\n(현재 역할: " + role + ")");
         }
     }
 }
