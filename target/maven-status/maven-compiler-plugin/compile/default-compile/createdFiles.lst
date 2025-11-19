@@ -10,8 +10,11 @@ cse\oop2\hotelflow\Client\ui\LoginMode.class
 cse\oop2\hotelflow\Client\ui\StartFrame.class
 cse\oop2\hotelflow\Client\ui\RoomServicePanel.class
 cse\oop2\hotelflow\Client\ui\MainFrame.class
+cse\oop2\hotelflow\Client\guest\GuestPortalFrame.class
 cse\oop2\hotelflow\Client\ui\RoomPanel$1.class
+cse\oop2\hotelflow\Client\guest\GuestDashboardFrame.class
 cse\oop2\hotelflow\Common\model\ReservationStatus.class
+cse\oop2\hotelflow\Client\guest\GuestLoginDialog.class
 cse\oop2\hotelflow\Client\ui\RoomPanel.class
 cse\oop2\hotelflow\Server\service\RoomService.class
 cse\oop2\hotelflow\Client\ui\RoomServicePanel$1.class
