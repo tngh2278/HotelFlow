@@ -1,26 +1,30 @@
 package cse.oop2.hotelflow.Common.model;
 
 public class Room {
-    private int roomNumber;
-    private RoomStatus status;
-    private int capacity;
 
-    public Room(int roomNumber, RoomStatus status , int capacity){
-        this.roomNumber = roomNumber;
-        this.status = status;
+    private int roomNum;              // 객실 번호
+    private RoomStatus roomStatus;    // 객실 상태 (VACANT, OCCUPIED, ...)
+    private int capacity;             // 수용 인원
+
+    public Room(int roomNum, RoomStatus roomStatus, int capacity) {
+        this.roomNum = roomNum;
+        this.roomStatus = roomStatus;
         this.capacity = capacity;
     }
 
-
-    //getter , setter 
-
-    public int getRoomNum() { return roomNumber;}
-    public RoomStatus getRoomStatus() {return status;}
-    public int getCapacity() { return capacity;}
-
-    @Override
-    public String toString(){
-        return roomNumber + "," + status + "," + capacity;
+    public int getRoomNum() {
+        return roomNum;
     }
 
+    public RoomStatus getRoomStatus() {
+        return roomStatus;
+    }
+
+    public void setRoomStatus(RoomStatus roomStatus) {
+        this.roomStatus = roomStatus;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
 }

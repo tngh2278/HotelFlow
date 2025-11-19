@@ -1,10 +1,10 @@
 package cse.oop2.hotelflow.Server.service;
 
-import cse.oop2.hotelflow.Common.model.User;
-import cse.oop2.hotelflow.Server.file.FileUserRepository;
-
 import java.io.IOException;
 import java.util.Optional;
+
+import cse.oop2.hotelflow.Common.model.User;
+import cse.oop2.hotelflow.Server.file.FileUserRepository;
 
 
 public class AuthService {

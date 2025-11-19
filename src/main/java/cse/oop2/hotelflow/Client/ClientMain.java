@@ -1,8 +1,8 @@
 package cse.oop2.hotelflow.Client;
 
-import cse.oop2.hotelflow.Client.ui.LoginFrame;
+import javax.swing.SwingUtilities;
 
-import javax.swing.*;
+import cse.oop2.hotelflow.Client.ui.LoginFrame;
 
 public class ClientMain {
     public static void main(String[] args) {
