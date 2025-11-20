@@ -2,11 +2,11 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
  */
-package MainAppFrame;
+package cse.oop2.hotelflow.util;
 import javax.swing.JFrame; // JFrame을 사용하기 위해 필요
 import java.awt.BorderLayout; // BorderLayout을 사용하기 위해 필요
 
-import UserManagementFrame.UserManagementPanel;
+import cse.oop2.hotelflow.userui.UserManagementPanel;
 
 /**
  *
@@ -61,8 +61,8 @@ public class AppFrame extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 400, Short.MAX_VALUE)

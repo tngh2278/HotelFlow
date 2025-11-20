@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
  */
-package UserManagementFrame;
+package cse.oop2.hotelflow.userui;
 
 import javax.swing.table.DefaultTableModel;
 import java.io.*;
