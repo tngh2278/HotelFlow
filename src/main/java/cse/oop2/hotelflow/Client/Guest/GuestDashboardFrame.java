@@ -1,4 +1,4 @@
-package cse.oop2.hotelflow.Client.guest;
+package cse.oop2.hotelflow.Client.Guest;
 
 import cse.oop2.hotelflow.Client.net.ClientConnection;
 import javax.swing.*;
@@ -35,7 +35,7 @@ public class GuestDashboardFrame extends JFrame {
         
         btnClose.addActionListener(e -> dispose());
 
-        // ★ [수정됨] 예약 상세 조회 기능 연결
+        // 예약 상세 조회 기능 연결
         btnDetail.addActionListener(e -> requestReservationDetail());
 
         // 온라인 체크인 기능 연결
@@ -72,7 +72,7 @@ public class GuestDashboardFrame extends JFrame {
         return btn;
     }
 
-    // ★ [추가됨] 예약 상세 조회 로직
+    // 예약 상세 조회 로직
     private void requestReservationDetail() {
         try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
             // 서버에 상세 정보 요청
@@ -95,7 +95,7 @@ public class GuestDashboardFrame extends JFrame {
                 String outDate = parts[6];
                 String status = parts[7];
 
-                // 보기 좋게 출력
+            
                 String message = String.format(
                         "=== 예약 상세 정보 ===\n\n" +
                         "예약 번호: %s\n" +

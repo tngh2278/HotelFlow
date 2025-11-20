@@ -1,7 +1,6 @@
 package cse.oop2.hotelflow.Client.ui;
 
-// ★ 여기가 중요합니다! 방금 만든 투숙객 패키지의 포털 화면을 가져옵니다.
-import cse.oop2.hotelflow.Client.guest.GuestPortalFrame;
+import cse.oop2.hotelflow.Client.Guest.GuestPortalFrame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -53,8 +52,6 @@ public class StartFrame extends JFrame {
         // 버튼 액션
         staffButton.addActionListener(e -> openStaffLogin());
         customerButton.addActionListener(e -> openCustomerLogin());
-        
-        // ★ 여기가 수정된 부분입니다.
         guestButton.addActionListener(e -> openGuestReservation());
     }
 
@@ -74,13 +71,6 @@ public class StartFrame extends JFrame {
 
     // 비회원 예약 및 투숙객 포털로 이동
     private void openGuestReservation() {
-        // 예전 코드: GuestReservationFrame guest = new GuestReservationFrame();
-        
-        // 새 코드: 새로 만든 포털(GuestPortalFrame)을 엽니다.
         new GuestPortalFrame().setVisible(true);
-        
-        // StartFrame을 끄지 않고 그대로 둘지, 끌지는 선택입니다.
-        // 보통 키오스크라면 시작 화면은 안 끄는 게 좋습니다.
-        // dispose(); 
     }
 }

@@ -1,4 +1,4 @@
-package cse.oop2.hotelflow.Client.guest;
+package cse.oop2.hotelflow.Client.Guest;
 
 import cse.oop2.hotelflow.Client.net.ClientConnection;
 import javax.swing.*;

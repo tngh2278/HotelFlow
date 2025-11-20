@@ -6,7 +6,6 @@ import cse.oop2.hotelflow.Common.model.UserRole;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import java.util.Optional;
 
 public class LoginFrame extends JFrame {
 

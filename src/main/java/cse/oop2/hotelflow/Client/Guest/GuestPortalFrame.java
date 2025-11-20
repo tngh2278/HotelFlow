@@ -1,6 +1,5 @@
-package cse.oop2.hotelflow.Client.guest;
+package cse.oop2.hotelflow.Client.Guest;
 
-// 팀원이 만든 예약 패널 import
 import cse.oop2.hotelflow.Client.ui.ReservationPanel; 
 
 import javax.swing.*;
@@ -25,14 +24,14 @@ public class GuestPortalFrame extends JFrame {
         titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 20));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        // 1. [객실 예약] 버튼
+        // 객실 예약 버튼
         JButton btnNewReservation = new JButton("객실 예약하기 (New Reservation)");
         btnNewReservation.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         btnNewReservation.setBackground(new Color(230, 240, 255));
         btnNewReservation.addActionListener(e -> openNewReservationWindow());
 
-        // 2. [나의 예약 관리] 버튼
-        JButton btnMyBooking = new JButton("나의 예약 관리 (My Booking)");
+        // 내 예약 관리 버튼 버튼
+        JButton btnMyBooking = new JButton("내 예약 관리 (My Booking)");
         btnMyBooking.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         btnMyBooking.addActionListener(e -> {
             dispose(); 
