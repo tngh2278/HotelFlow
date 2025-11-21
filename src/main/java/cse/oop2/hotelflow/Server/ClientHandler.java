@@ -10,12 +10,17 @@ import cse.oop2.hotelflow.Server.service.RoomService;
 import cse.oop2.hotelflow.Server.service.ReservationService;
 import cse.oop2.hotelflow.Server.service.CheckInOutService;
 import cse.oop2.hotelflow.Server.service.RoomServiceOrderService;
+import cse.oop2.hotelflow.Server.service.FeedbackService;
 
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 public class ClientHandler implements Runnable {
 
@@ -25,6 +30,7 @@ public class ClientHandler implements Runnable {
     private final ReservationService reservationService;
     private final CheckInOutService checkInOutService;
     private final RoomServiceOrderService roomServiceOrderService;
+    private final FeedbackService feedbackService;
 
     public ClientHandler(Socket socket, AuthService authService, RoomService roomService) {
         this.socket = socket;
@@ -33,6 +39,7 @@ public class ClientHandler implements Runnable {
         this.reservationService = new ReservationService("data/reservations.csv");
         this.checkInOutService = new CheckInOutService("data/reservations.csv", "data/rooms.csv");
         this.roomServiceOrderService = new RoomServiceOrderService("data/room_service_orders.csv");
+        this.feedbackService = new FeedbackService("data/feedback.csv");
     }
 
     @Override
@@ -164,7 +171,7 @@ public class ClientHandler implements Runnable {
                         out.println("FAIL|체크인 처리 중 오류 발생");
                     }
 
-                // ★ [추가됨] 10. 투숙객 예약 상세 조회 요청
+                // 10. 투숙객 예약 상세 조회 요청
                 } else if ("GUEST_GET_DETAIL".equals(command) && parts.length >= 2) {
                     String targetId = parts[1].trim();
                     List<Reservation> list = reservationService.getAllReservations();
@@ -185,9 +192,74 @@ public class ClientHandler implements Runnable {
                         out.println(response);
                     } else {
                         out.println("FAIL|예약 정보를 찾을 수 없습니다.");
+                    }                    
+                    
+                //11. GUEST_GET_BILL (청구 내역 조회)
+                } else if ("GUEST_GET_BILL".equals(command) && parts.length >= 2) {     
+                    String targetId = parts[1].trim();
+                    try {
+                    // 1. 예약 정보 찾기
+                    List<Reservation> resList = reservationService.getAllReservations();
+                    Reservation res = resList.stream()                
+                            .filter(r -> r.getId().equals(targetId))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
+
+                     // 2. 객실 정보 찾기 (1박 가격 확인용)
+                    List<Room> roomList = roomService.getAllRooms();
+                    Room room = roomList.stream()
+                            .filter(r -> String.valueOf(r.getRoomNum()).equals(String.valueOf(res.getRoomNum())))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("객실 정보를 찾을 수 없습니다."));
+
+                    // 3. 숙박비 계산 (박수 * 1박 가격)
+                    long nights = ChronoUnit.DAYS.between(
+                        LocalDate.parse(res.getCheckInDate(), DateTimeFormatter.ISO_DATE),
+                        LocalDate.parse(res.getCheckOutDate(), DateTimeFormatter.ISO_DATE)
+                    );
+                    if (nights < 1) nights = 1; // 최소 1박
+
+                     //수용 인원(Capacity)에 따라 가격 책정
+                    long pricePerNight;
+                    int cap = room.getCapacity();
+        
+                    if (cap <= 2) {
+                        pricePerNight = 100000; // 2인실 이하 10만원
+                    } else if (cap <= 4) {
+                        pricePerNight = 200000; // 4인실 이하 20만원
+                    } else {
+                        pricePerNight = 300000; // 대형 객실 30만원
                     }
 
-                // 11. 체크아웃
+                    long roomCost = nights * pricePerNight;
+
+                    // 4. 식음료(F&B) 비용 계산 (메뉴명에서 가격 파싱)
+                    List<RoomServiceOrder> orders = roomServiceOrderService.getAllOrders();
+                    long fnbCost = 0;
+                    
+                    for (RoomServiceOrder order : orders) {           
+                        if (order.getRoomNum() == res.getRoomNum()) { 
+                            String desc = order.getDescription(); // 예: "스테이크 (50,000원)"
+                            try {
+                                int start = desc.lastIndexOf('(');
+                                int end = desc.lastIndexOf('원');
+                                if (start != -1 && end != -1) {
+                                    String priceStr = desc.substring(start + 1, end).replace(",", "").replace(" ", "").trim();
+                                    fnbCost += Long.parseLong(priceStr);
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                     }
+
+                    // 5. 결과 전송: OK|객실료|식음료비|총합
+                    out.println("OK|" + roomCost + "|" + fnbCost + "|" + (roomCost + fnbCost));
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    out.println("FAIL|계산 중 오류 발생: " + e.getMessage());
+                }
+
+                // 12. 체크아웃
                 } else if ("CHECK_OUT".equals(command) && parts.length >= 2) {
                     try {
                         checkInOutService.checkOut(parts[1].trim());
@@ -196,7 +268,7 @@ public class ClientHandler implements Runnable {
                         out.println("FAIL|" + e.getMessage());
                     }
                 
-                // 12. 룸서비스 조회
+                // 13. 룸서비스 조회
                 } else if ("GET_ROOM_SERVICE_ORDERS".equals(command)) {
                     List<RoomServiceOrder> orders = roomServiceOrderService.getAllOrders();
                     StringBuilder sb = new StringBuilder("ROOM_SERVICE_ORDERS|");
@@ -211,7 +283,7 @@ public class ClientHandler implements Runnable {
                     }
                     out.println(sb.toString());
 
-                // 13. 룸서비스 생성
+                // 14. 룸서비스 생성
                 } else if ("CREATE_ROOM_SERVICE_ORDER".equals(command) && parts.length >= 3) {
                     try {
                         int roomNum = Integer.parseInt(parts[1].trim());
@@ -222,7 +294,7 @@ public class ClientHandler implements Runnable {
                         out.println("FAIL|" + e.getMessage());
                     }
 
-                // 14. 룸서비스 완료 처리
+                // 15. 룸서비스 완료 처리
                 } else if ("COMPLETE_ROOM_SERVICE_ORDER".equals(command) && parts.length >= 2) {
                     try {
                         roomServiceOrderService.completeOrder(parts[1].trim());
@@ -230,7 +302,36 @@ public class ClientHandler implements Runnable {
                     } catch (Exception e) {
                         out.println("FAIL|" + e.getMessage());
                     }
-
+                
+                // 16. 투숙객 피드백 저장
+                } else if ("GUEST_SEND_FEEDBACK".equals(command) && parts.length >= 3) {
+                    try {
+                        String bookingId = parts[1].trim();
+                        String content = parts[2].trim();
+        
+                        feedbackService.saveFeedback(bookingId, content);
+                        out.println("OK|피드백이 저장되었습니다.");
+                     } catch (Exception e) {
+                        e.printStackTrace();
+                        out.println("FAIL|피드백 저장 중 오류 발생");
+                }
+                
+                // 17. 직원용 피드백 전체 조회
+                } else if ("GET_ALL_FEEDBACK".equals(command)) {
+                    List<cse.oop2.hotelflow.Common.model.Feedback> list = feedbackService.findAll();
+                    StringBuilder sb = new StringBuilder("ALL_FEEDBACK|");
+    
+                    for (int i = 0; i < list.size(); i++) {
+                        cse.oop2.hotelflow.Common.model.Feedback f = list.get(i);
+                        // 데이터 구분자: 세미콜론(;)
+                        sb.append(f.getBookingId()).append(",")
+                          .append(f.getContent()).append(",")
+                          .append(f.getCreatedAt());
+          
+                        if (i < list.size() - 1) sb.append(";");
+                    }
+                    out.println(sb.toString());
+                    
                 } else {
                     out.println("FAIL|알 수 없는 명령: " + command);
                 }

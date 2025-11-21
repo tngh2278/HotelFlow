@@ -4,6 +4,7 @@ import cse.oop2.hotelflow.Client.net.ClientConnection;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.text.DecimalFormat;
 
 public class GuestDashboardFrame extends JFrame {
     private String guestName;
@@ -42,9 +43,9 @@ public class GuestDashboardFrame extends JFrame {
         btnCheckIn.addActionListener(e -> requestOnlineCheckIn());
 
         // 나머지 기능 (준비 중)
-        btnBill.addActionListener(e -> JOptionPane.showMessageDialog(this, "현재 결제 예정 금액: 150,000원 (예시)"));
-        btnFeedback.addActionListener(e -> JOptionPane.showMessageDialog(this, "소중한 의견 감사합니다. (준비 중)"));
-        btnFnB.addActionListener(e -> JOptionPane.showMessageDialog(this, "주문 내역이 없습니다."));
+        btnBill.addActionListener(e -> requestBill());
+        btnFeedback.addActionListener(e -> new FeedbackDialog(this, bookingId).setVisible(true));
+        btnFnB.addActionListener(e -> openFnBMenu());
 
         gridPanel.add(btnDetail);
         gridPanel.add(btnCheckIn);
@@ -142,5 +143,48 @@ public class GuestDashboardFrame extends JFrame {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "서버와 연결할 수 없습니다.");
         }
+    }
+    
+    // 청구 내역 및 예상 결제 금액 조회
+    private void requestBill() {
+        try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
+            String command = "GUEST_GET_BILL|" + bookingId;
+            String response = conn.sendAndReceive(command);
+
+            if (response != null && response.startsWith("OK|")) {
+                // 응답 형식: OK|객실료|식음료비|총합
+                String[] parts = response.split("\\|");
+                if (parts.length < 4) return;
+
+                long roomCost = Long.parseLong(parts[1]);
+                long fnbCost = Long.parseLong(parts[2]);
+                long totalCost = Long.parseLong(parts[3]);
+
+                DecimalFormat df = new DecimalFormat("#,###"); // 금액에 콤마 찍기
+
+                String message = String.format(
+                        "=== 예상 결제 금액 (Bill) ===\n\n" +
+                        "1. 객실 숙박비: %s원\n" +
+                        "2. 식음료/룸서비스: %s원\n" +
+                        "-------------------------------\n" +
+                        "총 합계: %s원",
+                        df.format(roomCost), df.format(fnbCost), df.format(totalCost)
+                );
+
+                JOptionPane.showMessageDialog(this, message, "청구 내역 조회", JOptionPane.INFORMATION_MESSAGE);
+
+            } else if (response != null && response.startsWith("FAIL|")) {
+                JOptionPane.showMessageDialog(this, "조회 실패: " + response.substring(5));
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "서버 연결 실패");
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "금액 데이터 오류");
+        }
+    }
+    
+    private void openFnBMenu() {
+        // bookingId를 넘겨주며 주문 창을 엽니다.
+        new FnBDialog(this, bookingId).setVisible(true);
     }
 }

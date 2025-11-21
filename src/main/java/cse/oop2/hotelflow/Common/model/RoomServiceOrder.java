@@ -1,4 +1,4 @@
-package cse.oop2.hotelflow.Common.model;
+     package cse.oop2.hotelflow.Common.model;
 
 public class RoomServiceOrder {
 

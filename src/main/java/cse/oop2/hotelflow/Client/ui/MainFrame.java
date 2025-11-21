@@ -11,12 +11,14 @@ public class MainFrame extends JFrame {
     private final RoomPanel roomPanel;
     private final ReservationPanel reservationPanel;
     private final RoomServicePanel roomServicePanel;
+    private final StaffFeedbackPanel feedbackPanel;
 
     public MainFrame(UserRole role) {
         this.role = role;
         this.roomPanel = new RoomPanel();
         this.reservationPanel = new ReservationPanel(roomPanel);
         this.roomServicePanel = new RoomServicePanel(); 
+        this.feedbackPanel = new StaffFeedbackPanel();
 
         setTitle("HotelFlow 메인 - " + role);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -33,6 +35,7 @@ public class MainFrame extends JFrame {
         tabs.addTab("객실 현황", roomPanel);
         tabs.addTab("예약", reservationPanel);
         tabs.addTab("룸서비스", roomServicePanel);
+        tabs.addTab("고객 피드백", feedbackPanel);
 
         add(tabs, BorderLayout.CENTER);
     }
@@ -41,5 +44,6 @@ public class MainFrame extends JFrame {
         roomPanel.loadRooms();
         reservationPanel.loadReservations();
         roomServicePanel.loadOrders();
+        feedbackPanel.loadFeedbackData();
     }
 }
