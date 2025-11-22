@@ -94,4 +94,10 @@ public class RoomPanel extends JPanel {
                 "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하세요.");
         }
     }
+
+    class UserRole {
+
+        public UserRole() {
+        }
+    }
 }

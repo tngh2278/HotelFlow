@@ -1,6 +1,7 @@
 package cse.oop2.hotelflow.Client.ui;
 
 import cse.oop2.hotelflow.Client.net.ClientConnection;
+import cse.oop2.hotelflow.Common.model.UserRole;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -11,8 +12,9 @@ public class ReservationPanel extends JPanel {
 
     private final DefaultTableModel tableModel;
     private final JTable table;
-    private RoomPanel roomPanel;
-    private boolean isGuestMode = false; // ★ 게스트 모드 여부
+    private final RoomPanel roomPanel;
+    private final boolean isGuestMode; //  비회원 모드 여부
+    private final UserRole role;       // 로그인 사용자 역할 (ADMIN / STAFF / CUSTOMER / null)
 
     private final JTextField roomField;
     private final JTextField nameField;
@@ -20,15 +22,26 @@ public class ReservationPanel extends JPanel {
     private final JTextField checkInField;
     private final JTextField checkOutField;
 
-    // ★ [중요] 관리자용 생성자 (기존 코드와 호환성 유지)
-    public ReservationPanel(RoomPanel roomPanel) {
-        this(roomPanel, false); // 기본값은 관리자 모드
+    private JButton checkInButton;
+    private JButton checkOutButton;
+    private JButton refreshButton;
+    private JButton cancelButton;
+
+    //  로그인 사용자용 (직원/관리자/고객)
+    public ReservationPanel(RoomPanel roomPanel, UserRole role) {
+        this(roomPanel, false, role); // 게스트 모드 아님
     }
 
-    // ★ [중요] 게스트 모드 지원 생성자
+    //  비회원(게스트)용
     public ReservationPanel(RoomPanel roomPanel, boolean isGuestMode) {
+        this(roomPanel, isGuestMode, null); // 게스트는 역할 없음
+    }
+
+    //  실제 필드 초기화용 공통 생성자
+    private ReservationPanel(RoomPanel roomPanel, boolean isGuestMode, UserRole role) {
         this.roomPanel = roomPanel;
         this.isGuestMode = isGuestMode;
+        this.role = role;
 
         setLayout(new BorderLayout(10, 10));
 
@@ -52,7 +65,7 @@ public class ReservationPanel extends JPanel {
         formPanel.add(checkInField);
         formPanel.add(checkOutField);
 
-        // 중앙: 예약 목록 테이블 (게스트 모드에선 안 보이거나 숨김)
+        // 중앙: 예약 목록 테이블
         String[] cols = { "예약번호", "객실", "고객명", "전화", "체크인", "체크아웃", "상태" };
         tableModel = new DefaultTableModel(cols, 0) {
             @Override
@@ -63,12 +76,13 @@ public class ReservationPanel extends JPanel {
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
 
-        // 게스트 모드일 경우 테이블 대신 안내 문구 표시
         if (isGuestMode) {
             scrollPane.setVisible(false);
-            JLabel guestLabel = new JLabel("<html><center><h2>비회원 객실 예약</h2><br>"
+            JLabel guestLabel = new JLabel(
+                    "<html><center><h2>비회원 객실 예약</h2><br>"
                     + "원하시는 객실 번호와 정보를 입력 후 '예약 등록'을 눌러주세요.<br>"
-                    + "예약 후 발급되는 <b>예약번호</b>를 꼭 기억해주세요!</center></html>", SwingConstants.CENTER);
+                    + "예약 후 발급되는 <b>예약번호</b>를 꼭 기억해주세요!</center></html>",
+                    SwingConstants.CENTER);
             add(guestLabel, BorderLayout.CENTER);
         } else {
             add(scrollPane, BorderLayout.CENTER);
@@ -77,10 +91,10 @@ public class ReservationPanel extends JPanel {
         // 하단: 버튼들
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton createButton = new JButton("예약 등록");
-        JButton refreshButton = new JButton("새로고침");
-        JButton cancelButton = new JButton("예약 취소");
-        JButton checkInButton = new JButton("체크인");
-        JButton checkOutButton = new JButton("체크아웃");
+        refreshButton = new JButton("새로고침");
+        cancelButton = new JButton("예약 취소");
+        checkInButton = new JButton("체크인");
+        checkOutButton = new JButton("체크아웃");
 
         createButton.addActionListener(e -> createReservation());
         refreshButton.addActionListener(e -> loadReservations());
@@ -90,25 +104,34 @@ public class ReservationPanel extends JPanel {
 
         buttonPanel.add(createButton);
 
-        // 게스트 모드면 관리자용 버튼(새로고침, 취소, 체크인/아웃) 숨김
         if (!isGuestMode) {
+            // 로그인 사용자 (직원/관리자/고객)
             buttonPanel.add(refreshButton);
             buttonPanel.add(cancelButton);
-            buttonPanel.add(checkInButton);
-            buttonPanel.add(checkOutButton);
+
+            // 고객이면 체크인/체크아웃 버튼 숨김
+            if (role == UserRole.CUSTOMER) {
+                checkInButton.setVisible(false);
+                checkOutButton.setVisible(false);
+            } else {
+                // 직원/관리자(또는 role 미사용) → 버튼 표시
+                buttonPanel.add(checkInButton);
+                buttonPanel.add(checkOutButton);
+            }
         }
+        // 게스트 모드면 refresh/cancel/check-in/out 버튼 숨김
 
         add(formPanel, BorderLayout.NORTH);
-        // ScrollPane add는 위쪽 if문에서 처리함
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // 관리자 모드라면 시작하자마자 데이터 로드
+        // 로그인 사용자 모드는 처음에 예약 목록 로드
         if (!isGuestMode) {
             loadReservations();
         }
     }
 
-    // 예약 생성 메서드
+
+    // 예약 생성
     private void createReservation() {
         String roomText = roomField.getText().trim();
         String name = nameField.getText().trim();
@@ -137,14 +160,13 @@ public class ReservationPanel extends JPanel {
 
             if (response != null && response.startsWith("OK|")) {
                 String id = response.substring("OK|".length());
-                JOptionPane.showMessageDialog(this, "예약이 성공적으로 등록되었습니다.\n[예약번호: " + id + "]");
+                JOptionPane.showMessageDialog(this,
+                        "예약이 성공적으로 등록되었습니다.\n[예약번호: " + id + "]");
 
-                // 게스트 모드라면 목록 갱신 없이 필드만 비움
                 if (isGuestMode) {
                     roomField.setText("");
                     nameField.setText("");
                     phoneField.setText("");
-                    // 날짜는 유지하거나 초기화
                 } else {
                     loadReservations();
                 }
@@ -162,11 +184,9 @@ public class ReservationPanel extends JPanel {
         }
     }
 
-    // 예약 목록 불러오기 메서드
+    // 예약 목록
     public void loadReservations() {
-        // 게스트 모드에선 전체 목록 조회를 막음
-        if (isGuestMode)
-            return;
+        if (isGuestMode) return;
 
         tableModel.setRowCount(0);
 
@@ -178,16 +198,13 @@ public class ReservationPanel extends JPanel {
             }
 
             String dataPart = response.substring("RESERVATIONS|".length());
-            if (dataPart.isEmpty())
-                return;
+            if (dataPart.isEmpty()) return;
 
             String[] tokens = dataPart.split(";");
             for (String token : tokens) {
                 String[] parts = token.split(",");
-                if (parts.length < 7)
-                    continue;
+                if (parts.length < 7) continue;
 
-                // 데이터 파싱 및 테이블 추가...
                 tableModel.addRow(parts);
             }
 
@@ -196,7 +213,7 @@ public class ReservationPanel extends JPanel {
         }
     }
 
-    // 예약 취소 메서드
+    // 예약 취소
     private void cancelReservation() {
         int row = table.getSelectedRow();
         if (row < 0) {
@@ -204,7 +221,7 @@ public class ReservationPanel extends JPanel {
             return;
         }
 
-        String reservationId = (String) tableModel.getValueAt(row, 0); // 0번 컬럼: 예약번호
+        String reservationId = (String) tableModel.getValueAt(row, 0);
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
@@ -221,7 +238,7 @@ public class ReservationPanel extends JPanel {
 
             if (response != null && response.startsWith("OK|")) {
                 JOptionPane.showMessageDialog(this, "예약이 취소되었습니다.");
-                loadReservations(); // 목록 다시 불러오기
+                loadReservations();
             } else if (response != null && response.startsWith("FAIL|")) {
                 String msg = response.substring("FAIL|".length());
                 JOptionPane.showMessageDialog(this, "예약 취소 실패: " + msg);
@@ -234,8 +251,8 @@ public class ReservationPanel extends JPanel {
                     "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하세요.");
         }
     }
-    // 체크인 메서드
 
+    // 체크인
     private void checkIn() {
         int row = table.getSelectedRow();
         if (row < 0) {
@@ -260,9 +277,9 @@ public class ReservationPanel extends JPanel {
 
             if (response != null && response.startsWith("OK|")) {
                 JOptionPane.showMessageDialog(this, "체크인이 완료되었습니다.");
-                loadReservations(); // 예약 목록 새로고침
+                loadReservations();
                 if (roomPanel != null) {
-                    roomPanel.loadRooms(); // ✅ 객실 현황도 같이 새로고침
+                    roomPanel.loadRooms();
                 }
             } else if (response != null && response.startsWith("FAIL|")) {
                 String msg = response.substring("FAIL|".length());
@@ -276,8 +293,8 @@ public class ReservationPanel extends JPanel {
                     "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하세요.");
         }
     }
-    // 체크아웃 메서드
 
+    // 체크아웃
     private void checkOut() {
         int row = table.getSelectedRow();
         if (row < 0) {
@@ -302,9 +319,9 @@ public class ReservationPanel extends JPanel {
 
             if (response != null && response.startsWith("OK|")) {
                 JOptionPane.showMessageDialog(this, "체크아웃이 완료되었습니다.");
-                loadReservations(); // 예약 목록 새로고침
+                loadReservations();
                 if (roomPanel != null) {
-                    roomPanel.loadRooms(); // ✅ 객실 현황도 같이 새로고침
+                    roomPanel.loadRooms();
                 }
             } else if (response != null && response.startsWith("FAIL|")) {
                 String msg = response.substring("FAIL|".length());

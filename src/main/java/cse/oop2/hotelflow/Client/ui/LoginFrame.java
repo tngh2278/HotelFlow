@@ -2,6 +2,7 @@ package cse.oop2.hotelflow.Client.ui;
 
 import cse.oop2.hotelflow.Client.net.ClientConnection;
 import cse.oop2.hotelflow.Common.model.UserRole;
+import cse.oop2.hotelflow.Client.ui.CustomerMainFrame;
 
 import javax.swing.*;
 import java.awt.*;
@@ -142,15 +143,10 @@ public class LoginFrame extends JFrame {
     // 고객 모드 처리
     private void handleCustomerLogin(UserRole role) {
         if (role == UserRole.CUSTOMER) {
-            // 아직 CustomerMainFrame이 없다면, 일단 MainFrame을 재사용해도 됨
-            // 나중에 고객 전용 화면을 따로 만들면 여기서 바꿔주면 됨.
-            // 예시:
-            // CustomerMainFrame customerMain = new CustomerMainFrame(role, ...);
-            // customerMain.setVisible(true);
-
-            MainFrame mainFrame = new MainFrame(role);  // 임시로 재사용
-            mainFrame.setVisible(true);
-            mainFrame.loadInitialData();
+            // 고객 전용 메인 프레임으로 이동
+            CustomerMainFrame cm = new CustomerMainFrame(role);
+            cm.setVisible(true);
+            cm.loadInitialData();
             dispose();
 
         } else {

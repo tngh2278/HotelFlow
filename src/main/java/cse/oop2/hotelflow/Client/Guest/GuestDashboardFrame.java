@@ -31,7 +31,7 @@ public class GuestDashboardFrame extends JFrame {
         JButton btnCheckIn = createBtn("온라인 체크인", "입실 요청");
         JButton btnBill = createBtn("청구 내역 조회", "결제 예상 금액 확인");
         JButton btnFeedback = createBtn("피드백 작성", "서비스 평가 및 건의");
-        JButton btnFnB = createBtn("식음료 주문 내역", "레스토랑/룸서비스 이용 기록");
+        JButton btnFnB = createBtn("레스토랑 & 룸서비스 주문", "레스토랑/룸서비스 이용 기록");
         JButton btnClose = new JButton("종료");
         
         btnClose.addActionListener(e -> dispose());

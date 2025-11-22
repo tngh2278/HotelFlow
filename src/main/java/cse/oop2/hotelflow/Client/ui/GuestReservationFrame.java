@@ -5,8 +5,10 @@ import java.awt.*;
 
 public class GuestReservationFrame extends JFrame {
 
+    private ReservationPanel reservationPanel;
+
     public GuestReservationFrame() {
-        setTitle("HotelFlow - 비회원 예약");
+        setTitle("HotelFlow - 비회원 객실 예약");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
@@ -17,12 +19,10 @@ public class GuestReservationFrame extends JFrame {
     private void initComponents() {
         setLayout(new BorderLayout());
 
-        JLabel label = new JLabel("비회원 예약 화면 (추후 ReservationPanel 연동 예정)", 
-                                  SwingConstants.CENTER);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 18));
-        add(label, BorderLayout.CENTER);
+        // 비회원 모드용 ReservationPanel
+        
+        reservationPanel = new ReservationPanel(null, true);
 
-        // TODO:
-        // 비회원용 예약 패널 구현 및 연동
+        add(reservationPanel, BorderLayout.CENTER);
     }
 }

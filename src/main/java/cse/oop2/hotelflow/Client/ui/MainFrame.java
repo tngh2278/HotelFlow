@@ -16,7 +16,7 @@ public class MainFrame extends JFrame {
     public MainFrame(UserRole role) {
         this.role = role;
         this.roomPanel = new RoomPanel();
-        this.reservationPanel = new ReservationPanel(roomPanel);
+        this.reservationPanel = new ReservationPanel(roomPanel,role);
         this.roomServicePanel = new RoomServicePanel(); 
         this.feedbackPanel = new StaffFeedbackPanel();
 

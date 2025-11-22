@@ -37,27 +37,39 @@ public class FeedbackDialog extends JDialog {
     }
 
     private void sendFeedback() {
-        String content = contentArea.getText().trim();
-        if (content.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "내용을 입력해주세요.");
+    String content = contentArea.getText().trim();
+    if (content.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "내용을 입력해주세요.");
+        return;
+    }
+
+    try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
+        // 줄바꿈은 공백으로 처리해서 전송 (프로토콜 단순화)
+        String safeContent = content.replace("\n", " ");
+        String command = "GUEST_SEND_FEEDBACK|" + bookingId + "|" + safeContent;
+
+        String response = conn.sendAndReceive(command);
+
+        if (response == null) {
+            JOptionPane.showMessageDialog(this, "서버 응답이 없습니다.");
             return;
         }
 
-        try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
-            // 줄바꿈은 공백으로 처리해서 전송 (프로토콜 단순화)
-            String safeContent = content.replace("\n", " ");
-            String command = "GUEST_SEND_FEEDBACK|" + bookingId + "|" + safeContent;
-            
-            String response = conn.sendAndReceive(command);
+        if (response.startsWith("OK|")) {
+            JOptionPane.showMessageDialog(this, "소중한 의견 감사합니다.");
+            dispose(); // 창 닫기
 
-            if (response != null && response.startsWith("OK|")) {
-                JOptionPane.showMessageDialog(this, "소중한 의견 감사합니다.");
-                dispose(); // 창 닫기
-            } else {
-                JOptionPane.showMessageDialog(this, "전송 실패");
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "서버 연결 실패");
+        } else if (response.startsWith("FAIL|")) {
+            String msg = response.substring("FAIL|".length());
+            JOptionPane.showMessageDialog(this, msg);
+
+        } else {
+            JOptionPane.showMessageDialog(this, "알 수 없는 응답: " + response);
         }
+
+    } catch (IOException e) {
+        JOptionPane.showMessageDialog(this,
+                "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.");
     }
+}
 }
