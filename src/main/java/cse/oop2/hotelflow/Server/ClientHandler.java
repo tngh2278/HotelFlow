@@ -362,7 +362,7 @@ public class ClientHandler implements Runnable {
                                 .findFirst()
                                 .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
                         //2. 체크아웃 상태인지 확인
-                        if (res.getStatus() != ReservationStatus.CHECKED_OUT) { 
+                        if (res.getStatus() != ReservationStatus.CHECKED_OUT) {
                             out.println("FAIL|체크아웃 완료된 예약에만 피드백을 남길 수 있습니다.");
                             return;
                         }
@@ -374,9 +374,7 @@ public class ClientHandler implements Runnable {
                         e.printStackTrace();
                         out.println("FAIL|피드백 저장 중 오류 발생");
                     }
-                }
-
-                // 17. 직원용 피드백 전체 조회
+                } // 17. 직원용 피드백 전체 조회
                 else if ("GET_ALL_FEEDBACK".equals(command)) {
                     List<cse.oop2.hotelflow.Common.model.Feedback> list = feedbackService.findAll();
                     StringBuilder sb = new StringBuilder("ALL_FEEDBACK|");
@@ -394,26 +392,142 @@ public class ClientHandler implements Runnable {
                     }
                     out.println(sb.toString());
 
-                } else {
+                    // 18. 매출 조회
+                } else if ("GET_SALES".equals(command) && parts.length >= 3) {
+                    String from = parts[1].trim(); // yyyy-MM-dd
+                    String to = parts[2].trim(); // yyyy-MM-dd
+
+                    try {
+                        java.util.List<Payment> payments = paymentService.findAll();
+
+                        java.time.LocalDate fromDate = java.time.LocalDate.parse(from);
+                        java.time.LocalDate toDate = java.time.LocalDate.parse(to);
+
+                        long roomTotal = 0;
+                        long fnbTotal = 0;
+
+                        for (Payment p : payments) {
+                            // createdAt 이 "2025-11-22T..." 이런 형식이라고 가정하고 앞 10자리만 사용
+                            String created = p.getCreatedAt();
+                            java.time.LocalDate payDate = java.time.LocalDate.parse(created.substring(0, 10));
+
+                            if ((payDate.isEqual(fromDate) || payDate.isAfter(fromDate))
+                                    && (payDate.isEqual(toDate) || payDate.isBefore(toDate))) {
+                                roomTotal += p.getRoomAmount();
+                                fnbTotal += p.getFnbAmount();
+                            }
+                        }
+
+                        long total = roomTotal + fnbTotal;
+                        out.println("OK|" + roomTotal + "|" + fnbTotal + "|" + total);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        out.println("FAIL|매출 조회 중 오류가 발생했습니다: " + e.getMessage());
+                    }
+                
+
+                    
+                }
+                // 19. 기간별 결제 내역 조회 (관리자/직원용)
+                else if ("GET_PAYMENTS".equals(command) && parts.length >= 3) {
+                    String from = parts[1].trim(); // yyyy-MM-dd
+                    String to = parts[2].trim(); // yyyy-MM-dd
+
+                    try {
+                        List<Payment> payments = paymentService.findAll();
+
+                        LocalDate fromDate = LocalDate.parse(from);
+                        LocalDate toDate = LocalDate.parse(to);
+
+                        StringBuilder sb = new StringBuilder("PAYMENTS|");
+                        boolean first = true;
+
+                        for (Payment p : payments) {
+                            String created = p.getCreatedAt();
+                            if (created == null || created.length() < 10) {
+                                continue;
+                            }
+                            LocalDate payDate = LocalDate.parse(created.substring(0, 10));
+
+                            boolean inRange
+                                    = (payDate.isEqual(fromDate) || payDate.isAfter(fromDate))
+                                    && (payDate.isEqual(toDate) || payDate.isBefore(toDate));
+
+                            if (!inRange) {
+                                continue;
+                            }
+
+                            if (!first) {
+                                sb.append(';');
+                            }
+                            first = false;
+
+                            sb.append(p.getId()).append(',')
+                                    .append(p.getReservationId()).append(',')
+                                    .append(p.getRoomAmount()).append(',')
+                                    .append(p.getFnbAmount()).append(',')
+                                    .append(p.getTotalAmount()).append(',')
+                                    .append(p.getMethod().name()).append(',')
+                                    .append(p.getCreatedAt());
+                        }
+
+                        out.println(sb.toString());
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        out.println("FAIL|결제 내역 조회 중 오류가 발생했습니다: " + e.getMessage());
+                    }
+                }
+                // 20. 특정 예약의 결제 내역 조회 (고객/직원 공용)
+                else if ("GET_PAYMENTS_BY_RESERVATION".equals(command) && parts.length >= 2) {
+                    String reservationId = parts[1].trim();
+
+                    try {
+                        List<Payment> payments = paymentService.findAll();
+
+                        StringBuilder sb = new StringBuilder("PAYMENTS_BY_RES|");
+                        boolean first = true;
+
+                        for (Payment p : payments) {
+                            if (!p.getReservationId().equals(reservationId)) {
+                                continue;
+                            }
+
+                            if (!first) {
+                                sb.append(';');
+                            }
+                            first = false;
+
+                            sb.append(p.getId()).append(',')
+                                    .append(p.getRoomAmount()).append(',')
+                                    .append(p.getFnbAmount()).append(',')
+                                    .append(p.getTotalAmount()).append(',')
+                                    .append(p.getMethod().name()).append(',')
+                                    .append(p.getCreatedAt());
+                        }
+
+                        out.println(sb.toString());
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        out.println("FAIL|결제 내역 조회 중 오류가 발생했습니다: " + e.getMessage());
+                    }
+                }
+                else {
                     out.println("FAIL|알 수 없는 명령: " + command);
                 }
-        }
+            }
 
-    }
-    catch (IOException e
-        
-
-    ) {
+        } catch (IOException e) {
             e.printStackTrace();
-    }
-
-    
-        finally {
+        } finally {
             try {
-            socket.close();
-        } catch (IOException ignored) {
+                socket.close();
+            } catch (IOException ignored) {
+            }
+            System.out.println("클라이언트 연결 종료: " + socket);
         }
-        System.out.println("클라이언트 연결 종료: " + socket);
+
     }
-}
 }

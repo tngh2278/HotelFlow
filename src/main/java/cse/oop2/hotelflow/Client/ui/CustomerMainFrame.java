@@ -21,6 +21,12 @@ public class CustomerMainFrame extends JFrame {
     private RoomPanel roomPanel;
     private ReservationPanel reservationPanel;
 
+    //마지막으로 청구 내역을 조회한 예약과 금액 저장용 변수
+    private String lastBillingBookingId = null;
+    private Long lastRoomCost = null;
+    private Long lastFnbCost = null;
+    private Long lastTotalCost = null;
+
     public CustomerMainFrame(UserRole role) {
         this.role = role;
 
@@ -73,11 +79,8 @@ public class CustomerMainFrame extends JFrame {
     }
 
     /**
-     * 고객이 예약번호로
-     * - 예약 상세 조회
-     * - 온라인 체크인
-     * - 청구 내역(객실+룸서비스) 조회
-     * - 체크아웃 후 피드백 작성하는 패널 */
+     * 고객이 예약번호로 - 예약 상세 조회 - 온라인 체크인 - 청구 내역(객실+룸서비스) 조회 - 체크아웃 후 피드백 작성하는 패널
+     */
     private JPanel createMyPagePanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
@@ -91,6 +94,8 @@ public class CustomerMainFrame extends JFrame {
         JButton checkInButton = new JButton("온라인 체크인");
         JButton billButton = new JButton("청구 내역 조회");
         JButton feedbackButton = new JButton("피드백 작성");
+        JButton payButton = new JButton("결제 하기");
+        JButton paymentHistoryButton = new JButton("결제 내역 조회");
 
         topPanel.add(label);
         topPanel.add(bookingIdField);
@@ -98,6 +103,8 @@ public class CustomerMainFrame extends JFrame {
         topPanel.add(checkInButton);
         topPanel.add(billButton);
         topPanel.add(feedbackButton);
+        topPanel.add(payButton);
+        topPanel.add(paymentHistoryButton);
 
         panel.add(topPanel, BorderLayout.NORTH);
 
@@ -107,19 +114,18 @@ public class CustomerMainFrame extends JFrame {
         infoArea.setLineWrap(true);
         infoArea.setWrapStyleWord(true);
         infoArea.setText(
-                "※ 사용 방법\n" +
-                "1) '예약 관리' 탭에서 예약을 생성하고, 발급된 예약번호를 기억해 두세요.\n" +
-                "2) 위 입력칸에 예약번호를 적고 아래 버튼들을 이용해 기능을 이용할 수 있습니다.\n" +
-                "   - 예약 상세 조회: 예약 정보 확인\n" +
-                "   - 온라인 체크인: 미리 체크인 처리\n" +
-                "   - 청구 내역 조회: 객실 요금 + 룸서비스 예상 금액 확인\n" +
-                "   - 피드백 작성: 체크아웃 완료된 예약에 한해서 의견 남기기\n"
+                "※ 사용 방법\n"
+                + "1) '예약 관리' 탭에서 예약을 생성하고, 발급된 예약번호를 기억해 두세요.\n"
+                + "2) 위 입력칸에 예약번호를 적고 아래 버튼들을 이용해 기능을 이용할 수 있습니다.\n"
+                + "   - 예약 상세 조회: 예약 정보 확인\n"
+                + "   - 온라인 체크인: 미리 체크인 처리\n"
+                + "   - 청구 내역 조회: 객실 요금 + 룸서비스 예상 금액 확인\n"
+                + "   - 피드백 작성: 체크아웃 완료된 예약에 한해서 의견 남기기\n"
         );
 
         panel.add(new JScrollPane(infoArea), BorderLayout.CENTER);
 
         // 버튼 동작 구현 
-
         // 1) 예약 상세 조회 (GUEST_GET_DETAIL)
         detailButton.addActionListener(e -> {
             String bookingId = bookingIdField.getText().trim();
@@ -179,7 +185,9 @@ public class CustomerMainFrame extends JFrame {
                     "온라인 체크인 확인",
                     JOptionPane.YES_NO_OPTION
             );
-            if (confirm != JOptionPane.YES_OPTION) return;
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
 
             try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
                 String cmd = "GUEST_CHECK_IN|" + bookingId;
@@ -234,11 +242,17 @@ public class CustomerMainFrame extends JFrame {
                         long fnbCost = Long.parseLong(parts[2]);
                         long total = Long.parseLong(parts[3]);
 
+                        // 마지막 청구 내역 저장
+                        lastBillingBookingId = bookingId;
+                        lastRoomCost = roomCost;
+                        lastFnbCost = fnbCost;
+                        lastTotalCost = total;
+
                         String msg = String.format(
-                                "객실 요금: %,d원\n" +
-                                "룸서비스(식음료): %,d원\n" +
-                                "------------------------\n" +
-                                "예상 결제 금액: %,d원",
+                                "객실 요금: %,d원\n"
+                                + "룸서비스(식음료): %,d원\n"
+                                + "------------------------\n"
+                                + "예상 결제 금액: %,d원",
                                 roomCost, fnbCost, total
                         );
                         JOptionPane.showMessageDialog(CustomerMainFrame.this,
@@ -273,6 +287,162 @@ public class CustomerMainFrame extends JFrame {
             // 체크아웃 전이면 서버가 FAIL|체크아웃 완료된 예약에만... 메시지를 돌려줌
             FeedbackDialog dialog = new FeedbackDialog(CustomerMainFrame.this, bookingId);
             dialog.setVisible(true);
+        });
+
+        // 4) 결제하기 (PAY_BILL)
+        payButton.addActionListener(e -> {
+            String bookingId = bookingIdField.getText().trim();
+            if (bookingId.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "예약번호를 먼저 입력하세요.");
+                return;
+            }
+
+            // 먼저 청구 내역을 조회한 적이 있는지 확인
+            if (lastBillingBookingId == null
+                    || !bookingId.equals(lastBillingBookingId)
+                    || lastRoomCost == null || lastFnbCost == null || lastTotalCost == null) {
+                JOptionPane.showMessageDialog(this,
+                        "먼저 '청구 내역 조회'를 통해 최신 금액을 확인해주세요.");
+                return;
+            }
+
+            // 결제 수단 선택
+            String[] methods = {"CARD", "CASH", "TRANSFER"}; // PaymentMethod enum과 이름 맞춰야 함
+            String selected = (String) JOptionPane.showInputDialog(
+                    this,
+                    "결제 수단을 선택하세요.",
+                    "결제 수단 선택",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    methods,
+                    methods[0]
+            );
+
+            if (selected == null) {
+                // 사용자가 취소 누른 경우
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    String.format("결제 금액: %,d원\n결제 수단: %s\n결제하시겠습니까?",
+                            lastTotalCost, selected),
+                    "결제 확인",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            // 서버로 PAY_BILL 전송
+            try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
+                String cmd = String.format("PAY_BILL|%s|%d|%d|%d|%s",
+                        lastBillingBookingId,
+                        lastRoomCost,
+                        lastFnbCost,
+                        lastTotalCost,
+                        selected // PaymentMethod.valueOf(selected) 에 대응
+                );
+
+                String response = conn.sendAndReceive(cmd);
+
+                if (response == null) {
+                    JOptionPane.showMessageDialog(this, "서버 응답이 없습니다.");
+                    return;
+                }
+
+                if (response.startsWith("OK|")) {
+                    String paymentId = response.substring("OK|".length());
+                    JOptionPane.showMessageDialog(this,
+                            "결제가 완료되었습니다.\n결제번호: " + paymentId);
+
+                    // 결제 후에는 상태 초기화 해도 좋음
+                    // lastBillingBookingId = null; ...
+                } else if (response.startsWith("FAIL|")) {
+                    String msg = response.substring("FAIL|".length());
+                    JOptionPane.showMessageDialog(this,
+                            "결제 실패: " + msg);
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                            "알 수 없는 응답: " + response);
+                }
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.");
+            }
+        });
+
+        //5) 결제 내역 조회 (PAYMENT_HISTORY)
+        paymentHistoryButton.addActionListener(e -> {
+            String bookingId = bookingIdField.getText().trim();
+            if (bookingId.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "예약번호를 먼저 입력하세요.");
+                return;
+            }
+
+            try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
+                String cmd = "GET_PAYMENTS_BY_RESERVATION|" + bookingId;
+                String resp = conn.sendAndReceive(cmd);
+
+                if (resp == null) {
+                    JOptionPane.showMessageDialog(this, "서버 응답이 없습니다.");
+                    return;
+                }
+
+                if (!resp.startsWith("PAYMENTS_BY_RES|")) {
+                    if (resp.startsWith("FAIL|")) {
+                        JOptionPane.showMessageDialog(this,
+                                "결제 내역 조회 실패: " + resp.substring("FAIL|".length()));
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "알 수 없는 응답: " + resp);
+                    }
+                    return;
+                }
+
+                String data = resp.substring("PAYMENTS_BY_RES|".length());
+                if (data.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "해당 예약에 대한 결제 내역이 없습니다.");
+                    return;
+                }
+
+                StringBuilder sb = new StringBuilder();
+                String[] rows = data.split(";");
+                for (String row : rows) {
+                    String[] parts = row.split(",");
+                    if (parts.length < 6) {
+                        continue;
+                    }
+
+                    String payId = parts[0].trim();
+                    String roomAmt = parts[1].trim();
+                    String fnbAmt = parts[2].trim();
+                    String total = parts[3].trim();
+                    String method = parts[4].trim();
+                    String created = parts[5].trim();
+
+                    sb.append("결제ID: ").append(payId).append("\n")
+                            .append("객실요금: ").append(roomAmt).append("원\n")
+                            .append("룸서비스: ").append(fnbAmt).append("원\n")
+                            .append("총액: ").append(total).append("원\n")
+                            .append("수단: ").append(method).append("\n")
+                            .append("일시: ").append(created).append("\n")
+                            .append("----------------------\n");
+                }
+
+                JTextArea area = new JTextArea(sb.toString());
+                area.setEditable(false);
+                JScrollPane scroll = new JScrollPane(area);
+                scroll.setPreferredSize(new Dimension(400, 300));
+
+                JOptionPane.showMessageDialog(this, scroll, "결제 내역", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                        "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하세요.");
+            }
         });
 
         return panel;

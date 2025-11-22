@@ -9,6 +9,7 @@ cse\oop2\hotelflow\Client\ui\StaffFeedbackPanel.class
 cse\oop2\hotelflow\Server\service\FeedbackService.class
 cse\oop2\hotelflow\Client\ui\RoomPanel$UserRole.class
 cse\oop2\hotelflow\Common\model\Feedback.class
+cse\oop2\hotelflow\Client\ui\SalesPanel.class
 cse\oop2\hotelflow\Server\file\FileRoomServiceOrderRepository.class
 cse\oop2\hotelflow\Client\guest\FeedbackDialog.class
 cse\oop2\hotelflow\Client\ui\ReservationPanel$1.class
@@ -24,6 +25,7 @@ cse\oop2\hotelflow\Client\ui\LoginMode.class
 cse\oop2\hotelflow\Client\ui\StartFrame.class
 cse\oop2\hotelflow\Client\guest\GuestPortalFrame.class
 cse\oop2\hotelflow\Client\ui\RoomPanel$1.class
+cse\oop2\hotelflow\Client\ui\SalesPanel$1.class
 cse\oop2\hotelflow\Client\guest\GuestDashboardFrame.class
 cse\oop2\hotelflow\Common\model\ReservationStatus.class
 cse\oop2\hotelflow\Client\guest\GuestLoginDialog.class

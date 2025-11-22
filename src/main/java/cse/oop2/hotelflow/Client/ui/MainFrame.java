@@ -37,6 +37,9 @@ public class MainFrame extends JFrame {
         tabs.addTab("룸서비스", roomServicePanel);
         tabs.addTab("고객 피드백", feedbackPanel);
 
+        SalesPanel salesPanel = new SalesPanel();
+        tabs.addTab("매출 조회", salesPanel);
+
         add(tabs, BorderLayout.CENTER);
     }
 
