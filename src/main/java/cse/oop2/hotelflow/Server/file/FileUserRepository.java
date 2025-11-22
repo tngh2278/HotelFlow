@@ -126,7 +126,7 @@ public class FileUserRepository {
         return removed;
     }
 
-    public void save(User user) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    public void save(User user) throws IOException {
+        addUser(user);
     }
 }

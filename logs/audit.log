@@ -1,0 +1,4 @@
+2025-11-23 04:23:40 | admin | LOGIN | role=ADMIN
+2025-11-23 04:29:25 | admin | LOGIN | role=ADMIN
+2025-11-23 04:29:29 | 1234 | ADD_USER | name=1234, role=ADMIN, phone=
+2025-11-23 04:59:11 | admin | LOGIN | role=ADMIN

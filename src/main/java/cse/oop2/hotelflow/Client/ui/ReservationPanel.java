@@ -12,7 +12,7 @@ public class ReservationPanel extends JPanel {
     private final DefaultTableModel tableModel;
     private final JTable table;
     private RoomPanel roomPanel;
-    private boolean isGuestMode;      // 비회원 모드 여부
+    private boolean isGuestMode; // 비회원 모드 여부
 
     // 🔹 로그인 고객 필터 (이름 + 전화번호)
     private String myNameFilter;
@@ -66,8 +66,24 @@ public class ReservationPanel extends JPanel {
         formPanel.add(checkInField);
         formPanel.add(checkOutField);
 
+        // 고객 모드일때 : 이름/전화번호를 자동 추가 + 수정 불가하게
+
+        if (!isGuestMode && myNameFilter != null && myPhoneFilter != null) {
+            nameField.setText(myNameFilter);
+            phoneField.setText(myPhoneFilter);
+
+            nameField.setEditable(false);
+            phoneField.setEditable(false);
+
+            nameField.setBackground(new Color(245, 245, 245));
+            phoneField.setBackground(new Color(245, 245, 245));
+
+            nameField.setToolTipText("로그인한 고객의 이름");
+            phoneField.setToolTipText("로그인한 고객의 전화번호");
+
+        }
         // 중앙: 예약 목록 테이블
-        String[] cols = {"예약번호", "객실", "고객명", "전화", "체크인", "체크아웃", "상태"};
+        String[] cols = { "예약번호", "객실", "고객명", "전화", "체크인", "체크아웃", "상태" };
         tableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -76,16 +92,20 @@ public class ReservationPanel extends JPanel {
         };
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
+        formPanel.setBorder(BorderFactory.createTitledBorder("예약 정보 입력"));
+        scrollPane.setBorder(BorderFactory.createTitledBorder("내 예약 목록"));
+
+        table.setFillsViewportHeight(true);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         if (isGuestMode) {
             // 비회원 모드: 안내 메시지, 테이블 숨김
             scrollPane.setVisible(false);
             JLabel guestLabel = new JLabel(
                     "<html><center><h2>비회원 객실 예약</h2><br>"
-                    + "원하시는 객실 번호와 정보를 입력 후 '예약 등록'을 눌러주세요.<br>"
-                    + "예약 후 발급되는 <b>예약번호</b>를 꼭 기억해주세요!</center></html>",
-                    SwingConstants.CENTER
-            );
+                            + "원하시는 객실 번호와 정보를 입력 후 '예약 등록'을 눌러주세요.<br>"
+                            + "예약 후 발급되는 <b>예약번호</b>를 꼭 기억해주세요!</center></html>",
+                    SwingConstants.CENTER);
             add(guestLabel, BorderLayout.CENTER);
         } else {
             add(scrollPane, BorderLayout.CENTER);
@@ -98,17 +118,23 @@ public class ReservationPanel extends JPanel {
         JButton cancelButton = new JButton("예약 취소");
         JButton checkInButton = new JButton("체크인");
         JButton checkOutButton = new JButton("체크아웃");
+        JButton loadButton = new JButton("선택 불러오기");
+        JButton updateButton = new JButton("예약 수정");
 
         createButton.addActionListener(e -> createReservation());
         refreshButton.addActionListener(e -> loadReservations());
         cancelButton.addActionListener(e -> cancelReservation());
         checkInButton.addActionListener(e -> checkIn());
         checkOutButton.addActionListener(e -> checkOut());
+        loadButton.addActionListener(e -> loadSelectedReservationToForm());
+        updateButton.addActionListener(e -> updateReservation());
 
         buttonPanel.add(createButton);
 
         // 비회원 모드에서는 관리자용 버튼 숨김
         if (!isGuestMode) {
+            buttonPanel.add(loadButton);
+            buttonPanel.add(updateButton);
             buttonPanel.add(refreshButton);
             buttonPanel.add(cancelButton);
             buttonPanel.add(checkInButton);
@@ -179,6 +205,62 @@ public class ReservationPanel extends JPanel {
         }
     }
 
+    // 예약 수정 후 서버에 전송
+    private void updateReservation() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "수정할 예약을 먼저 선택하세요.");
+            return;
+        }
+
+        String reservationId = String.valueOf(tableModel.getValueAt(row, 0)); // 0번 컬럼 = 예약번호
+
+        String roomText = roomField.getText().trim();
+        String name = nameField.getText().trim();
+        String phone = phoneField.getText().trim();
+        String checkIn = checkInField.getText().trim();
+        String checkOut = checkOutField.getText().trim();
+
+        if (roomText.isEmpty() || name.isEmpty() || phone.isEmpty()
+                || checkIn.isEmpty() || checkOut.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "모든 필드를 입력하세요.");
+            return;
+        }
+
+        int roomNum;
+        try {
+            roomNum = Integer.parseInt(roomText);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "객실 번호는 숫자여야 합니다.");
+            return;
+        }
+
+        try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
+            // UPDATE_RESERVATION|id|roomNum|name|phone|checkIn|checkOut
+            String cmd = String.format(
+                    "UPDATE_RESERVATION|%s|%d|%s|%s|%s|%s",
+                    reservationId, roomNum, name, phone, checkIn, checkOut);
+
+            String response = conn.sendAndReceive(cmd);
+
+            if (response != null && response.startsWith("OK|")) {
+                JOptionPane.showMessageDialog(this, "예약이 수정되었습니다.");
+                loadReservations();
+                if (roomPanel != null) {
+                    roomPanel.loadRooms();
+                }
+            } else if (response != null && response.startsWith("FAIL|")) {
+                String msg = response.substring("FAIL|".length());
+                JOptionPane.showMessageDialog(this, "예약 수정 실패: " + msg);
+            } else {
+                JOptionPane.showMessageDialog(this, "알 수 없는 응답: " + response);
+            }
+
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "서버 연결 실패");
+        }
+    }
+
     // 예약 목록 불러오기 (직원/관리자/회원 고객)
     public void loadReservations() {
         if (isGuestMode) {
@@ -221,8 +303,8 @@ public class ReservationPanel extends JPanel {
                     }
                 }
 
-                tableModel.addRow(new Object[]{
-                    resId, roomNum, custName, phone, checkIn, checkOut, status
+                tableModel.addRow(new Object[] {
+                        resId, roomNum, custName, phone, checkIn, checkOut, status
                 });
             }
 
@@ -356,4 +438,50 @@ public class ReservationPanel extends JPanel {
                     "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하세요.");
         }
     }
+
+    // 선택한 예약번호 가져오기
+    public String getSelectedReservationId() {
+        if (table == null || tableModel == null) {
+            return null;
+        }
+
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "먼저 '예약' 탭에서 예약을 하나 선택해 주세요.",
+                    "예약 선택 필요",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return null;
+        }
+
+        Object value = tableModel.getValueAt(row, 0); // 0번 컬럼 = 예약번호
+        return (value != null) ? value.toString() : null;
+    }
+    // 선택된 예약 정보를 상단 폼에 채우기
+
+    private void loadSelectedReservationToForm() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "먼저 수정할 예약을 테이블에서 선택하세요.",
+                    "예약 선택 필요",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String roomNum = String.valueOf(tableModel.getValueAt(row, 1)); // 객실
+        String custName = String.valueOf(tableModel.getValueAt(row, 2)); // 이름
+        String phone = String.valueOf(tableModel.getValueAt(row, 3)); // 전화
+        String checkIn = String.valueOf(tableModel.getValueAt(row, 4)); // 체크인
+        String checkOut = String.valueOf(tableModel.getValueAt(row, 5)); // 체크아웃
+
+        roomField.setText(roomNum);
+        nameField.setText(custName);
+        phoneField.setText(phone);
+        checkInField.setText(checkIn);
+        checkOutField.setText(checkOut);
+    }
+
 }

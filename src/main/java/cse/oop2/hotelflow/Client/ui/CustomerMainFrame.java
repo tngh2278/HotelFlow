@@ -56,7 +56,7 @@ public class CustomerMainFrame extends JFrame {
         // 탭 구성
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("객실 조회", roomPanel);
-        tabs.addTab("예약 관리", reservationPanel);
+        tabs.addTab("예약", reservationPanel);
 
         // 고객용 룸서비스 탭 (생성자가 기본 생성자라면 이렇게)
         CustomerRoomServicePanel roomServicePanel = new CustomerRoomServicePanel();
@@ -91,6 +91,9 @@ public class CustomerMainFrame extends JFrame {
 
         JLabel label = new JLabel("예약번호:");
         JTextField bookingIdField = new JTextField(15);
+        bookingIdField.setEditable(false); // 직접 입력 못 하도록
+        bookingIdField.setBackground(new Color(245, 245, 245));
+        bookingIdField.setToolTipText("예약 탭에서 선택한 예약의 번호가 표시됩니다.");
 
         JButton detailButton = new JButton("예약 상세 조회");
         JButton checkInButton = new JButton("온라인 체크인");
@@ -98,9 +101,11 @@ public class CustomerMainFrame extends JFrame {
         JButton feedbackButton = new JButton("피드백 작성");
         JButton payButton = new JButton("결제 하기");
         JButton paymentHistoryButton = new JButton("결제 내역 조회");
+        JButton useSelectedButton = new JButton("예약 탭에서 선택한 예약 사용");
 
         topPanel.add(label);
         topPanel.add(bookingIdField);
+        topPanel.add(useSelectedButton);
         topPanel.add(detailButton);
         topPanel.add(checkInButton);
         topPanel.add(billButton);
@@ -117,17 +122,35 @@ public class CustomerMainFrame extends JFrame {
         infoArea.setWrapStyleWord(true);
         infoArea.setText(
                 "※ 사용 방법\n"
-                + "1) '예약 관리' 탭에서 예약을 생성하고, 발급된 예약번호를 기억해 두세요.\n"
-                + "2) 위 입력칸에 예약번호를 적고 아래 버튼들을 이용해 기능을 이용할 수 있습니다.\n"
-                + "   - 예약 상세 조회: 예약 정보 확인\n"
-                + "   - 온라인 체크인: 미리 체크인 처리\n"
-                + "   - 청구 내역 조회: 객실 요금 + 룸서비스 예상 금액 확인\n"
-                + "   - 피드백 작성: 체크아웃 완료된 예약에 한해서 의견 남기기\n"
+            + "1) '예약' 탭에서 객실을 선택하고 예약을 생성합니다.\n"
+           + "2) '예약' 탭의 예약 목록에서 처리할 예약을 하나 선택합니다.\n"
+            + "3) 이 탭으로 돌아와 '예약 탭에서 선택한 예약 사용' 버튼을 누르면\n"
+            + "   위의 예약번호 칸에 자동으로 예약번호가 입력됩니다.\n"
+            + "4) 아래 버튼들을 사용해 예약 상세 조회, 온라인 체크인,\n"
+            + "   청구 내역 조회, 피드백 작성, 결제, 결제 내역 조회를 할 수 있습니다.\n"
         );
 
         panel.add(new JScrollPane(infoArea), BorderLayout.CENTER);
 
         // ===== 버튼 동작 구현 =====
+
+        // 0) 예약 탭에서 선택된 예약을 가져와 예약번호 탭에 채우기
+        useSelectedButton.addActionListener(e -> {
+            if (reservationPanel == null) {
+                JOptionPane.showMessageDialog(
+                    CustomerMainFrame.this,
+                    "'예약' 탭이 초기화되지 않았습니다.",
+                    "오류",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        String id = reservationPanel.getSelectedReservationId();
+        if (id != null && !id.isBlank()) {
+            bookingIdField.setText(id);
+        }
+    });
         // 1) 예약 상세 조회 (GUEST_GET_DETAIL)
         detailButton.addActionListener(e -> {
             String bookingId = bookingIdField.getText().trim();

@@ -91,4 +91,41 @@ public class ReservationService {
 
         reservationRepository.saveAll(all);
     }
+    // 예약 내용 수정 메서드
+    public void updateReservation(String id,
+                                  int roomNum,
+                                  String customerName,
+                                  String phone,
+                                  String checkInDate,
+                                  String checkOutDate) throws IOException {
+
+        List<Reservation> all = reservationRepository.findAll();
+        boolean found = false;
+
+        for (Reservation r : all) {
+            if (r.getId().equals(id)) {
+                // 상태 체크: 취소/체크아웃 된 예약은 수정 금지
+                if (r.getStatus() == ReservationStatus.CANCELED
+                        || r.getStatus() == ReservationStatus.CHECKED_OUT) {
+                    throw new IllegalArgumentException("취소되었거나 체크아웃된 예약은 수정할 수 없습니다.");
+                }
+
+                // 실제 필드 수정
+                r.setRoomNum(roomNum);
+                r.setCustomerName(customerName);
+                r.setPhone(phone);
+                r.setCheckInDate(checkInDate);
+                r.setCheckOutDate(checkOutDate);
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            throw new IllegalArgumentException("해당 예약을 찾을 수 없습니다.");
+        }
+
+        reservationRepository.saveAll(all);
+    }
 }
