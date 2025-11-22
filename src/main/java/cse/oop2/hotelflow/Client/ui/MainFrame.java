@@ -7,6 +7,7 @@ import java.awt.*;
 
 public class MainFrame extends JFrame {
 
+    private UserManagementPanel userManagementPanel;
     private final UserRole role;
     private final RoomPanel roomPanel;
     private final ReservationPanel reservationPanel;
@@ -39,6 +40,12 @@ public class MainFrame extends JFrame {
 
         SalesPanel salesPanel = new SalesPanel();
         tabs.addTab("매출 조회", salesPanel);
+
+        // 관리자 전용 사용자 관리 탭
+        if (role == UserRole.ADMIN) {
+            userManagementPanel = new UserManagementPanel();
+            tabs.addTab("사용자 관리", userManagementPanel);
+        }
 
         add(tabs, BorderLayout.CENTER);
     }

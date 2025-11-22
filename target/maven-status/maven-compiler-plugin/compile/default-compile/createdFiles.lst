@@ -6,7 +6,9 @@ cse\oop2\hotelflow\Client\ui\CustomerRoomServicePanel$1.class
 cse\oop2\hotelflow\Client\ui\RoomServicePanel.class
 cse\oop2\hotelflow\Client\ui\MainFrame.class
 cse\oop2\hotelflow\Client\ui\StaffFeedbackPanel.class
+cse\oop2\hotelflow\Client\ui\UserManagementPanel$1.class
 cse\oop2\hotelflow\Server\service\FeedbackService.class
+cse\oop2\hotelflow\Client\ui\UserManagementPanel.class
 cse\oop2\hotelflow\Client\ui\RoomPanel$UserRole.class
 cse\oop2\hotelflow\Common\model\Feedback.class
 cse\oop2\hotelflow\Client\ui\SalesPanel.class

@@ -110,9 +110,23 @@ public class FileUserRepository {
     /**
      * 한 명 추가 저장 (기존 전체 읽고 + append 후 saveAll)
      */
-    public void save(User user) throws IOException {
-        List<User> all = findAll();
-        all.add(user);
-        saveAll(all);
+    public void addUser(User user) throws IOException {
+        List<User> users = findAll();
+        users.add(user);
+        saveAll(users);
+    }
+        /*  ID로 유저 삭제
+         */
+    public boolean deleteById(String id) throws IOException {
+        List<User> users = findAll();
+        boolean removed = users.removeIf(u -> u.getId().equals(id));
+        if (removed) {
+            saveAll(users);
+        }
+        return removed;
+    }
+
+    public void save(User user) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

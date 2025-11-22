@@ -78,6 +78,30 @@ public class ClientHandler implements Runnable {
                     } else {
                         out.println("FAIL|아이디 또는 비밀번호가 올바르지 않습니다.");
                     }
+                    //2-2. 사용자 목록 조회(관리자 전용)
+                    }else if ("GET_USERS".equals(command)) {
+                    try {
+                        List<User> users = authService.findAllUsers();
+
+                        // 프로토콜: USERS|id,name,role,phone;id,name,role,phone;...
+                        StringBuilder sb = new StringBuilder("USERS|");
+                        for (int i = 0; i < users.size(); i++) {
+                            User u = users.get(i);
+                            sb.append(u.getId()).append(',')
+                              .append(u.getName()).append(',')
+                              .append(u.getRole().name()).append(',')
+                              .append(u.getPhone() == null ? "" : u.getPhone());
+                            if (i < users.size() - 1) {
+                                sb.append(';');
+                            }
+                        }
+
+                        out.println(sb.toString());
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        out.println("FAIL|사용자 목록 조회 중 오류가 발생했습니다.");
+                    }
 
                     // 3. 투숙객(비회원) 로그인
                 } else if ("GUEST_LOGIN".equals(command) && parts.length >= 3) {
@@ -533,11 +557,68 @@ public class ClientHandler implements Runnable {
                         out.println("FAIL|회원 정보 저장 중 오류가 발생했습니다.");
                     }
                 }
+                // 22.사용자 목록 조회
+                else if ("GET_USER_LIST".equals(command)) {
+                    try {
+                        
+                        java.util.List<User> users = authService.findAllUsers();
+
+                        // 응답 형식: USERS|id,name,role,phone;id2,name2,role2,phone2;...
+                        StringBuilder sb = new StringBuilder("USERS|");
+                        for (int i = 0; i < users.size(); i++) {
+                            User u = users.get(i);
+                            sb.append(u.getId()).append(',')
+                                    .append(u.getName()).append(',')
+                                    .append(u.getRole().name()).append(',')
+                                    .append(u.getPhone() == null ? "" : u.getPhone());
+                            if (i < users.size() - 1) {
+                                sb.append(';');
+                            }
+                        }
+                        out.println(sb.toString());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        out.println("FAIL|사용자 목록 조회 중 오류가 발생했습니다.");
+                    }
+                } // 23. 사용자 추가
+                else if ("ADD_USER".equals(command) && parts.length >= 6) {
+                    // ADD_USER|id|name|password|role|phone
+                    String id = parts[1].trim();
+                    String name = parts[2].trim();
+                    String password = parts[3].trim();
+                    String roleStr = parts[4].trim();
+                    String phone = parts[5].trim();
+
+                    try {
+                        
+                        authService.addUser(id, name, password, roleStr, phone);
+                        out.println("OK|사용자가 추가되었습니다.");
+                    } catch (IllegalArgumentException e) {
+                        out.println("FAIL|" + e.getMessage());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        out.println("FAIL|사용자 추가 중 오류가 발생했습니다.");
+                    }
+                } // 24. 사용자 삭제
+                else if ("DELETE_USER".equals(command) && parts.length >= 2) {
+                    // DELETE_USER|id
+                    String id = parts[1].trim();
+
+                    try {
+                        
+                        authService.deleteUser(id);
+                        out.println("OK|사용자가 삭제되었습니다.");
+                    } catch (IllegalArgumentException e) {
+                        out.println("FAIL|" + e.getMessage());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        out.println("FAIL|사용자 삭제 중 오류가 발생했습니다.");
+                    }
+                }
                 else {
                     out.println("FAIL|알 수 없는 명령: " + command);
                 }
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
