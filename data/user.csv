@@ -1,4 +1,3 @@
-id,name,password,role
-admin,관리자,admin,ADMIN
-staff,직원,staff,STAFF
-customer,고객,customer,CUSTOMER
+admin,관리자,admin,ADMIN,
+staff,직원,staff,STAFF,
+customer,고객,customer,CUSTOMER,

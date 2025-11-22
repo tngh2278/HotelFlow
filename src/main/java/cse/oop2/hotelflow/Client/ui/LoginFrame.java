@@ -101,16 +101,23 @@ public class LoginFrame extends JFrame {
             String response = conn.sendAndReceive("LOGIN|" + id + "|" + pw);
 
             if (response != null && response.startsWith("OK|")) {
-                String roleStr = response.split("\\|")[1];
-                statusLabel.setText("로그인 성공 (" + roleStr + ")");
+                //  split 결과를 String[] 로 받기
+                String[] parts = response.split("\\|");
 
+                String roleStr = parts[1];
+
+                //  name, phone 파싱
+                String name = (parts.length >= 3) ? parts[2] : "";
+                String phone = (parts.length >= 4) ? parts[3] : "";
                 UserRole role = UserRole.valueOf(roleStr);
+
+                statusLabel.setText("로그인 성공 (" + roleStr + ")");
 
                 // 모드별 분기
                 if (mode == LoginMode.STAFF_ADMIN) {
                     handleStaffAdminLogin(role);
                 } else if (mode == LoginMode.CUSTOMER) {
-                    handleCustomerLogin(role);
+                    handleCustomerLogin(role, name, phone);
                 }
 
             } else if (response != null && response.startsWith("FAIL|")) {
@@ -141,14 +148,12 @@ public class LoginFrame extends JFrame {
     }
 
     // 고객 모드 처리
-    private void handleCustomerLogin(UserRole role) {
+    private void handleCustomerLogin(UserRole role, String name, String phone) {
         if (role == UserRole.CUSTOMER) {
-            // 고객 전용 메인 프레임으로 이동
-            CustomerMainFrame cm = new CustomerMainFrame(role);
+            CustomerMainFrame cm = new CustomerMainFrame(name, phone);
             cm.setVisible(true);
             cm.loadInitialData();
             dispose();
-
         } else {
             JOptionPane.showMessageDialog(this,
                     "고객 전용 로그인입니다.\n(현재 역할: " + role + ")");

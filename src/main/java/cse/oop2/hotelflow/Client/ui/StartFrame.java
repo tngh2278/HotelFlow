@@ -25,13 +25,19 @@ public class StartFrame extends JFrame {
         title.setBorder(BorderFactory.createEmptyBorder(15, 15, 5, 15));
         add(title, BorderLayout.NORTH);
 
-        // 가운데 버튼 3개
+        // 버튼 4개
         JPanel centerPanel = new JPanel(new GridLayout(3, 1, 10, 10));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(10, 40, 20, 40));
 
         JButton staffButton = new JButton("직원 / 관리자 로그인");
         JButton customerButton = new JButton("고객 로그인");
-        JButton guestButton = new JButton("비회원 예약 / 투숙객 포털"); // 이름 살짝 변경 추천
+        JButton guestButton = new JButton("비회원 예약 / 포털");
+        JButton customerRegisterButton = new JButton("고객 회원가입");
+        
+        //회원가입 창 열기
+        customerRegisterButton.addActionListener(e -> {
+            new CustomerRegisterFrame().setVisible(true);
+        });
 
         Font btnFont = new Font("SansSerif", Font.PLAIN, 18);
         staffButton.setFont(btnFont);
@@ -41,11 +47,12 @@ public class StartFrame extends JFrame {
         centerPanel.add(staffButton);
         centerPanel.add(customerButton);
         centerPanel.add(guestButton);
+        centerPanel.add(customerRegisterButton);
 
         add(centerPanel, BorderLayout.CENTER);
 
         // 하단 안내 문구
-        JLabel info = new JLabel("로그인 방식을 선택하세요.", SwingConstants.CENTER);
+        JLabel info = new JLabel("로그인/회원가입", SwingConstants.CENTER);
         info.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         add(info, BorderLayout.SOUTH);
 

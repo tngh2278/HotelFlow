@@ -72,7 +72,9 @@ public class ClientHandler implements Runnable {
                     String password = parts[2];
                     Optional<User> userOpt = authService.login(id, password);
                     if (userOpt.isPresent()) {
-                        out.println("OK|" + userOpt.get().getRole());
+                        User user = userOpt.get();
+                        // OK|ROLE|NAME|PHONE
+                        out.println("OK|" + userOpt.get().getRole().name() + "|" + userOpt.get().getName() + "|" + userOpt.get().getPhone());
                     } else {
                         out.println("FAIL|아이디 또는 비밀번호가 올바르지 않습니다.");
                     }
@@ -512,6 +514,23 @@ public class ClientHandler implements Runnable {
                     } catch (Exception e) {
                         e.printStackTrace();
                         out.println("FAIL|결제 내역 조회 중 오류가 발생했습니다: " + e.getMessage());
+                    }
+                }
+                // 21. 고객 회원가입
+                else if ("REGISTER_CUSTOMER".equals(command) && parts.length >= 5) {
+                    String id = parts[1].trim();
+                    String name = parts[2].trim();
+                    String pw = parts[3].trim();
+                    String phone = parts[4].trim();
+
+                    try {
+                        authService.registerCustomer(id, name, pw, phone);
+                        out.println("OK|REGISTERED");
+                    } catch (IllegalArgumentException e) {
+                        out.println("FAIL|" + e.getMessage());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        out.println("FAIL|회원 정보 저장 중 오류가 발생했습니다.");
                     }
                 }
                 else {

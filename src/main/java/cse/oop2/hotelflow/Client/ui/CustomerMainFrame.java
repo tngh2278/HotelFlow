@@ -1,34 +1,35 @@
 package cse.oop2.hotelflow.Client.ui;
 
-import cse.oop2.hotelflow.Common.model.UserRole;
 import cse.oop2.hotelflow.Client.net.ClientConnection;
+import cse.oop2.hotelflow.Client.Guest.FeedbackDialog;
 
 import javax.swing.*;
-
 import java.awt.*;
 import java.io.IOException;
 
-import cse.oop2.hotelflow.Client.Guest.FeedbackDialog;
-
 // 고객 전용 메인 화면
 // - 객실 조회
-// - 예약 관리
-// - 내 예약 / 청구 / 피드백
+// - 예약 관리 (내 예약만 보기)
+// - 내 예약 / 청구 / 피드백 / 결제
 public class CustomerMainFrame extends JFrame {
 
-    private final UserRole role;
+    // 로그인한 고객 정보
+    private final String customerName;
+    private final String customerPhone;
 
     private RoomPanel roomPanel;
     private ReservationPanel reservationPanel;
 
-    //마지막으로 청구 내역을 조회한 예약과 금액 저장용 변수
+    // 마지막으로 청구 내역을 조회한 예약과 금액 저장용 변수
     private String lastBillingBookingId = null;
     private Long lastRoomCost = null;
     private Long lastFnbCost = null;
     private Long lastTotalCost = null;
 
-    public CustomerMainFrame(UserRole role) {
-        this.role = role;
+    //  LoginFrame에서 사용하는 생성자
+    public CustomerMainFrame(String customerName, String customerPhone) {
+        this.customerName = customerName;
+        this.customerPhone = customerPhone;
 
         setTitle("HotelFlow - 고객 화면");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -38,26 +39,26 @@ public class CustomerMainFrame extends JFrame {
         initComponents();
     }
 
-    // 기본 생성자
-    public CustomerMainFrame() {
-        this(UserRole.CUSTOMER);
-    }
-
     private void initComponents() {
         setLayout(new BorderLayout());
 
         // 객실 목록 확인 패널
         roomPanel = new RoomPanel();
 
-        // 예약 관리 패널 (고객 모드: 체크인/체크아웃 버튼 숨김)
-        reservationPanel = new ReservationPanel(roomPanel, UserRole.CUSTOMER);
+        // 고객 모드 예약 패널: 내 이름/전화에 해당하는 예약만 보이도록 필터 전달
+        reservationPanel = new ReservationPanel(
+                roomPanel,
+                false, // isGuestMode 아님 (회원 고객)
+                customerName,
+                customerPhone
+        );
 
         // 탭 구성
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("객실 조회", roomPanel);
         tabs.addTab("예약 관리", reservationPanel);
 
-        //고객용 룸서비스 탭 추가
+        // 고객용 룸서비스 탭 (생성자가 기본 생성자라면 이렇게)
         CustomerRoomServicePanel roomServicePanel = new CustomerRoomServicePanel();
         tabs.addTab("룸서비스", roomServicePanel);
 
@@ -79,7 +80,8 @@ public class CustomerMainFrame extends JFrame {
     }
 
     /**
-     * 고객이 예약번호로 - 예약 상세 조회 - 온라인 체크인 - 청구 내역(객실+룸서비스) 조회 - 체크아웃 후 피드백 작성하는 패널
+     * 고객이 예약번호로 - 예약 상세 조회 - 온라인 체크인 - 청구 내역(객실+룸서비스) 조회 - 결제 - 체크아웃 후 피드백 작성 -
+     * 결제 내역 조회 하는 UI
      */
     private JPanel createMyPagePanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -125,7 +127,7 @@ public class CustomerMainFrame extends JFrame {
 
         panel.add(new JScrollPane(infoArea), BorderLayout.CENTER);
 
-        // 버튼 동작 구현 
+        // ===== 버튼 동작 구현 =====
         // 1) 예약 상세 조회 (GUEST_GET_DETAIL)
         detailButton.addActionListener(e -> {
             String bookingId = bookingIdField.getText().trim();
@@ -276,7 +278,7 @@ public class CustomerMainFrame extends JFrame {
             }
         });
 
-        // 4) 피드백 작성 (FeedbackDialog 사용, GUEST_SEND_FEEDBACK는 FeedbackDialog 안에서 전송)
+        // 4) 피드백 작성 (FeedbackDialog 안에서 GUEST_SEND_FEEDBACK 전송)
         feedbackButton.addActionListener(e -> {
             String bookingId = bookingIdField.getText().trim();
             if (bookingId.isEmpty()) {
@@ -284,16 +286,15 @@ public class CustomerMainFrame extends JFrame {
                 return;
             }
 
-            // 체크아웃 전이면 서버가 FAIL|체크아웃 완료된 예약에만... 메시지를 돌려줌
             FeedbackDialog dialog = new FeedbackDialog(CustomerMainFrame.this, bookingId);
             dialog.setVisible(true);
         });
 
-        // 4) 결제하기 (PAY_BILL)
+        // 5) 결제하기 (PAY_BILL)
         payButton.addActionListener(e -> {
             String bookingId = bookingIdField.getText().trim();
             if (bookingId.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "예약번호를 먼저 입력하세요.");
+                JOptionPane.showMessageDialog(CustomerMainFrame.this, "예약번호를 먼저 입력하세요.");
                 return;
             }
 
@@ -301,15 +302,14 @@ public class CustomerMainFrame extends JFrame {
             if (lastBillingBookingId == null
                     || !bookingId.equals(lastBillingBookingId)
                     || lastRoomCost == null || lastFnbCost == null || lastTotalCost == null) {
-                JOptionPane.showMessageDialog(this,
+                JOptionPane.showMessageDialog(CustomerMainFrame.this,
                         "먼저 '청구 내역 조회'를 통해 최신 금액을 확인해주세요.");
                 return;
             }
 
-            // 결제 수단 선택
             String[] methods = {"CARD", "CASH", "TRANSFER"}; // PaymentMethod enum과 이름 맞춰야 함
             String selected = (String) JOptionPane.showInputDialog(
-                    this,
+                    CustomerMainFrame.this,
                     "결제 수단을 선택하세요.",
                     "결제 수단 선택",
                     JOptionPane.QUESTION_MESSAGE,
@@ -319,12 +319,11 @@ public class CustomerMainFrame extends JFrame {
             );
 
             if (selected == null) {
-                // 사용자가 취소 누른 경우
                 return;
             }
 
             int confirm = JOptionPane.showConfirmDialog(
-                    this,
+                    CustomerMainFrame.this,
                     String.format("결제 금액: %,d원\n결제 수단: %s\n결제하시겠습니까?",
                             lastTotalCost, selected),
                     "결제 확인",
@@ -335,50 +334,46 @@ public class CustomerMainFrame extends JFrame {
                 return;
             }
 
-            // 서버로 PAY_BILL 전송
             try (ClientConnection conn = new ClientConnection("localhost", 5555)) {
                 String cmd = String.format("PAY_BILL|%s|%d|%d|%d|%s",
                         lastBillingBookingId,
                         lastRoomCost,
                         lastFnbCost,
                         lastTotalCost,
-                        selected // PaymentMethod.valueOf(selected) 에 대응
+                        selected
                 );
 
                 String response = conn.sendAndReceive(cmd);
 
                 if (response == null) {
-                    JOptionPane.showMessageDialog(this, "서버 응답이 없습니다.");
+                    JOptionPane.showMessageDialog(CustomerMainFrame.this, "서버 응답이 없습니다.");
                     return;
                 }
 
                 if (response.startsWith("OK|")) {
                     String paymentId = response.substring("OK|".length());
-                    JOptionPane.showMessageDialog(this,
+                    JOptionPane.showMessageDialog(CustomerMainFrame.this,
                             "결제가 완료되었습니다.\n결제번호: " + paymentId);
-
-                    // 결제 후에는 상태 초기화 해도 좋음
-                    // lastBillingBookingId = null; ...
                 } else if (response.startsWith("FAIL|")) {
                     String msg = response.substring("FAIL|".length());
-                    JOptionPane.showMessageDialog(this,
+                    JOptionPane.showMessageDialog(CustomerMainFrame.this,
                             "결제 실패: " + msg);
                 } else {
-                    JOptionPane.showMessageDialog(this,
+                    JOptionPane.showMessageDialog(CustomerMainFrame.this,
                             "알 수 없는 응답: " + response);
                 }
 
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this,
+                JOptionPane.showMessageDialog(CustomerMainFrame.this,
                         "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.");
             }
         });
 
-        //5) 결제 내역 조회 (PAYMENT_HISTORY)
+        // 6) 결제 내역 조회 (GET_PAYMENTS_BY_RESERVATION)
         paymentHistoryButton.addActionListener(e -> {
             String bookingId = bookingIdField.getText().trim();
             if (bookingId.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "예약번호를 먼저 입력하세요.");
+                JOptionPane.showMessageDialog(CustomerMainFrame.this, "예약번호를 먼저 입력하세요.");
                 return;
             }
 
@@ -387,16 +382,16 @@ public class CustomerMainFrame extends JFrame {
                 String resp = conn.sendAndReceive(cmd);
 
                 if (resp == null) {
-                    JOptionPane.showMessageDialog(this, "서버 응답이 없습니다.");
+                    JOptionPane.showMessageDialog(CustomerMainFrame.this, "서버 응답이 없습니다.");
                     return;
                 }
 
                 if (!resp.startsWith("PAYMENTS_BY_RES|")) {
                     if (resp.startsWith("FAIL|")) {
-                        JOptionPane.showMessageDialog(this,
+                        JOptionPane.showMessageDialog(CustomerMainFrame.this,
                                 "결제 내역 조회 실패: " + resp.substring("FAIL|".length()));
                     } else {
-                        JOptionPane.showMessageDialog(this,
+                        JOptionPane.showMessageDialog(CustomerMainFrame.this,
                                 "알 수 없는 응답: " + resp);
                     }
                     return;
@@ -404,7 +399,7 @@ public class CustomerMainFrame extends JFrame {
 
                 String data = resp.substring("PAYMENTS_BY_RES|".length());
                 if (data.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "해당 예약에 대한 결제 내역이 없습니다.");
+                    JOptionPane.showMessageDialog(CustomerMainFrame.this, "해당 예약에 대한 결제 내역이 없습니다.");
                     return;
                 }
 
@@ -437,10 +432,11 @@ public class CustomerMainFrame extends JFrame {
                 JScrollPane scroll = new JScrollPane(area);
                 scroll.setPreferredSize(new Dimension(400, 300));
 
-                JOptionPane.showMessageDialog(this, scroll, "결제 내역", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(CustomerMainFrame.this,
+                        scroll, "결제 내역", JOptionPane.INFORMATION_MESSAGE);
 
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this,
+                JOptionPane.showMessageDialog(CustomerMainFrame.this,
                         "서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인하세요.");
             }
         });
